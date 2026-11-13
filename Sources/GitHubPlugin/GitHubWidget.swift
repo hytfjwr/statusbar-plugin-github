@@ -76,9 +76,9 @@ public final class GitHubWidget: StatusBarWidget {
                     .foregroundStyle(Theme.yellow)
             }
 
-            Image(systemName: "arrow.triangle.pull")
-                .font(Theme.sfIconFont)
-                .foregroundStyle(iconColor)
+            GitHubMarkShape()
+                .fill(iconColor)
+                .frame(width: 14, height: 14)
 
             if settings.showBarCounts && myPRCount > 0 {
                 Text("\(myPRCount)")

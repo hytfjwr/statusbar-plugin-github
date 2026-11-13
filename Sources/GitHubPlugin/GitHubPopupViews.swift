@@ -83,9 +83,9 @@ struct GitHubPopupContent: View {
 
     private var header: some View {
         HStack(spacing: 8) {
-            Image(systemName: "arrow.triangle.pull")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(Theme.accentBlue)
+            GitHubMarkShape()
+                .fill(Theme.accentBlue)
+                .frame(width: 12, height: 12)
             Text("GITHUB")
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(Theme.secondary)
