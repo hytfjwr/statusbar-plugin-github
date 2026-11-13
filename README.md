@@ -1,55 +1,53 @@
-# StatusBar Plugin Template
+# GitHub Plugin for StatusBar
 
-Template for building [StatusBar](https://github.com/hytfjwr/StatusBar) plugins.
+GitHub pull requests and notifications in your [StatusBar](https://github.com/hytfjwr/StatusBar), powered by the `gh` CLI.
 
-## Quick Start
+## Features
 
-1. Click **"Use this template"** on GitHub to create your plugin repository
-2. Clone your new repo
-3. Customize the plugin (see below)
-4. `make dev` to build and install locally for testing
-
-## Customization
-
-1. **Makefile** — Update these variables at the top:
-   - `PLUGIN_NAME` — Your Swift module name (e.g. `WeatherPlugin`)
-   - `PLUGIN_ID` — Reverse-domain identifier (e.g. `com.example.weather`)
-   - `VERSION` — Semver version string
-
-2. **Package.swift** — Rename the product, target, and module to match `PLUGIN_NAME`
-
-3. **Sources/** — Rename the `MyPlugin` directory to match your module name, then update the source files
-
-4. **Plugin struct** — Update `PluginManifest` id/name and add your widgets
-
-## Make Targets
-
-| Target | Description |
-|--------|-------------|
-| `make build` | Release build via SPM |
-| `make bundle` | Build + create `.statusplugin` bundle |
-| `make package` | Bundle + create `.statusplugin.zip` |
-| `make dev` | Bundle + install to `~/.config/statusbar/plugins/` |
-| `make clean` | Remove build artifacts |
-
-## Development Workflow
-
-```bash
-# Edit code, then:
-make dev
-# Plugin is installed locally — restart StatusBar or use Dev Mode to load
-```
-
-## Releasing
-
-Releases are fully automated via GitHub Actions:
-
-1. Go to **Actions → Release** in your GitHub repository
-2. Click **"Run workflow"** and select a bump type (`patch` / `minor` / `major`)
-3. The workflow automatically calculates the next version, builds, packages, creates a git tag, and publishes a GitHub Release
+- **Bar indicator** — shows pending review count and your open PR count at a glance
+- **Review Requested** — PRs where your review (or your team's) is requested, across every repo
+- **My Pull Requests** — your open PRs with Draft status, review decision (Approved / Changes Requested / Review Required), and CI status
+- **Notifications** — unread GitHub notifications with type icons and reason labels
+- **Multi-account** — uses every account signed in to `gh auth status`, or an explicit list
+- **Toast alerts** — new review requests, PR approvals, and change requests notify via StatusBar toasts (with an "Open" action)
+- **Click any row** to open it in the browser
 
 ## Requirements
 
 - macOS 26+
-- Swift 6.2 / Xcode 26 beta
-- [StatusBarKit](https://github.com/hytfjwr/StatusBarKit) 1.0.0+
+- [GitHub CLI](https://cli.github.com/) (`gh`) signed in — `gh auth login`
+- StatusBar 0.20.0+ / StatusBarKit 1.10.1+
+
+## Data Sources
+
+| Section | Source |
+|---------|--------|
+| My PRs | GraphQL search `is:pr is:open author:<login>` |
+| Review Requested | GraphQL search `is:pr is:open (review-requested:<login> OR team-review-requested:<login>)` |
+| Notifications | `GET /notifications` (unread) |
+
+Each account is queried with its own token (`gh auth token -u <login>`), so non-active `gh` accounts work too.
+
+## Settings
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `accounts` | *(auto)* | Comma-separated gh logins; empty = all authenticated accounts |
+| `refreshInterval` | `60` | Poll interval in seconds (min 15) |
+| `showNotifications` | `true` | Show the notifications section |
+| `showBarCounts` | `true` | Show PR counts next to the bar icon |
+| `toastOnReviewRequest` | `true` | Toast when a new review request arrives |
+| `toastOnReviewDecision` | `true` | Toast when your PR is approved / gets changes requested |
+
+## Development
+
+```bash
+make dev    # Build + install to ~/.config/statusbar/plugins/
+swift test  # Run tests
+```
+
+Then restart StatusBar (or reload plugins) to pick up the new bundle.
+
+## Releasing
+
+Releases are automated via GitHub Actions: **Actions → Release → Run workflow** and pick a bump type.

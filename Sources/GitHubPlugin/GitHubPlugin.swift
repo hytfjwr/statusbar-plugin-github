@@ -1,16 +1,16 @@
 import StatusBarKit
 
 @MainActor
-public struct MyPlugin: StatusBarPlugin {
+public struct GitHubPlugin: StatusBarPlugin {
     public let manifest = PluginManifest(
-        id: "com.example.myplugin",
-        name: "My Plugin"
+        id: "com.statusbar.github",
+        name: "GitHub"
     )
 
     public let widgets: [any StatusBarWidget]
 
     public init() {
-        widgets = [MyWidget()]
+        widgets = [GitHubWidget()]
     }
 }
 
@@ -18,6 +18,6 @@ public struct MyPlugin: StatusBarPlugin {
 
 @_cdecl("createStatusBarPlugin")
 public func createStatusBarPlugin() -> UnsafeMutableRawPointer {
-    let box = PluginBox { MyPlugin() }
+    let box = PluginBox { GitHubPlugin() }
     return Unmanaged.passRetained(box).toOpaque()
 }
