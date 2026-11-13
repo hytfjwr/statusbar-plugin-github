@@ -102,7 +102,7 @@ struct GitHubPopupContent: View {
                 .frame(width: 13, height: 13)
             Text("GITHUB")
                 .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(Theme.secondary)
+                .foregroundStyle(.primary.opacity(0.8))
 
             Spacer()
 
@@ -113,13 +113,13 @@ struct GitHubPopupContent: View {
             } else if let lastUpdated {
                 Text(RelativeTime.string(from: lastUpdated))
                     .font(.system(size: 10, weight: .medium, design: .rounded))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
             }
 
             Button(action: onRefresh) {
                 Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(Theme.secondary)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.primary.opacity(0.7))
             }
             .buttonStyle(.plain)
             .disabled(fetching)
@@ -138,7 +138,7 @@ struct GitHubPopupContent: View {
                 .foregroundStyle(color)
                 .padding(.horizontal, 7)
                 .padding(.vertical, 1)
-                .background(Capsule().fill(color.opacity(0.12)))
+                .background(Capsule().fill(color.opacity(0.22)))
                 .padding(.trailing, 14)
                 .padding(.top, 12)
                 .padding(.bottom, 4)
@@ -162,7 +162,7 @@ struct GitHubPopupContent: View {
     private func hintRow(_ text: String) -> some View {
         Text(text)
             .font(.system(size: 11))
-            .foregroundStyle(.tertiary)
+            .foregroundStyle(.secondary)
             .padding(.bottom, 8)
     }
 }
@@ -185,13 +185,13 @@ private struct PRRowView: View {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
                     Image(systemName: leadingIcon)
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(leadingColor)
                         .frame(width: 16)
 
                     Text("\(pr.repo)#\(pr.number)")
                         .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(Theme.secondary)
+                        .foregroundStyle(.primary.opacity(0.8))
                         .lineLimit(1)
 
                     Spacer(minLength: 4)
@@ -276,16 +276,16 @@ private struct PRRowView: View {
                 .font(.system(size: 10, weight: .medium, design: .rounded))
                 .lineLimit(1)
         }
-        .foregroundStyle(.tertiary)
+        .foregroundStyle(.secondary)
     }
 
     private func accountBadge(_ login: String) -> some View {
         Text("@\(login)")
-            .font(.system(size: 9, weight: .medium, design: .monospaced))
+            .font(.system(size: 9, weight: .semibold, design: .monospaced))
             .foregroundStyle(Theme.accentBlue)
             .padding(.horizontal, 5)
             .padding(.vertical, 1)
-            .background(Capsule().fill(Theme.accentBlue.opacity(0.1)))
+            .background(Capsule().fill(Theme.accentBlue.opacity(0.22)))
     }
 }
 
@@ -301,23 +301,23 @@ private struct NotificationRowView: View {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
                     Image(systemName: typeIcon)
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(typeColor)
                         .frame(width: 16)
 
                     Text(notification.repo)
                         .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(Theme.secondary)
+                        .foregroundStyle(.primary.opacity(0.8))
                         .lineLimit(1)
 
                     Spacer(minLength: 4)
 
                     Text(reasonLabel)
-                        .font(.system(size: 9, weight: .medium, design: .rounded))
+                        .font(.system(size: 9, weight: .semibold, design: .rounded))
                         .foregroundStyle(Theme.purple)
                         .padding(.horizontal, 5)
                         .padding(.vertical, 1)
-                        .background(Capsule().fill(Theme.purple.opacity(0.1)))
+                        .background(Capsule().fill(Theme.purple.opacity(0.22)))
                 }
 
                 Text(notification.title)
@@ -331,11 +331,11 @@ private struct NotificationRowView: View {
                     metaItem("clock", RelativeTime.string(from: notification.updatedAt))
                     if showAccount {
                         Text("@\(notification.account)")
-                            .font(.system(size: 9, weight: .medium, design: .monospaced))
+                            .font(.system(size: 9, weight: .semibold, design: .monospaced))
                             .foregroundStyle(Theme.accentBlue)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 1)
-                            .background(Capsule().fill(Theme.accentBlue.opacity(0.1)))
+                            .background(Capsule().fill(Theme.accentBlue.opacity(0.22)))
                     }
                 }
                 .padding(.leading, 22)
@@ -365,7 +365,7 @@ private struct NotificationRowView: View {
         switch notification.type {
         case "CheckSuite", "CheckRun", "WorkflowRun", "WorkflowJob": Theme.red
         case "RepositoryVulnerabilityAlert": Theme.yellow
-        default: Theme.secondary
+        default: .primary.opacity(0.7)
         }
     }
 
@@ -394,7 +394,7 @@ private struct NotificationRowView: View {
                 .font(.system(size: 10, weight: .medium, design: .rounded))
                 .lineLimit(1)
         }
-        .foregroundStyle(.tertiary)
+        .foregroundStyle(.secondary)
     }
 }
 
