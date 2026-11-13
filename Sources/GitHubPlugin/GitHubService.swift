@@ -7,6 +7,8 @@ private let logger = Logger(subsystem: "com.statusbar.github", category: "GitHub
 enum GitHubServiceError: Error, Equatable {
     case notAuthenticated
     case fetchFailed(String)
+    /// /notifications 404 — token lacks the `notifications` scope.
+    case notificationsUnsupported
 }
 
 /// Wraps the `gh` CLI. All data comes from the GitHub GraphQL API (search) and
@@ -69,10 +71,16 @@ final class GitHubService: @unchecked Sendable {
     }
 
     func fetchNotifications(account: String) async throws -> [GitHubNotification] {
-        let output = try await authed(account) {
+        let result = try await authedResult(account) {
             "gh api notifications -f per_page=50"
         }
-        guard let data = output.data(using: .utf8) else {
+        guard result.exitCode == 0 else {
+            if result.stderr.contains("404") || result.stdout.contains("HTTP 404") {
+                throw GitHubServiceError.notificationsUnsupported
+            }
+            throw GitHubServiceError.fetchFailed(result.stderr.components(separatedBy: "\n").first ?? "request failed")
+        }
+        guard let data = result.stdout.data(using: .utf8) else {
             throw GitHubServiceError.fetchFailed("empty response")
         }
         return try JSONDecoder().decode([NotificationDTO].self, from: data)
@@ -95,6 +103,8 @@ final class GitHubService: @unchecked Sendable {
         if includeNotifications {
             do {
                 snapshot.notifications = try await fetchNotifications(account: account.login)
+            } catch GitHubServiceError.notificationsUnsupported {
+                snapshot.notificationsUnsupported = true
             } catch {
                 logger.debug("fetchNotifications(\(account.login)) failed: \(error.localizedDescription)")
             }
@@ -109,6 +119,14 @@ final class GitHubService: @unchecked Sendable {
     private func authed(_ account: String, command: () -> String) async throws -> String {
         let tokenExpr = "$(gh auth token -u \(shellQuote(account)) -h github.com)"
         return try await ShellCommand.run(
+            "GH_TOKEN=\(tokenExpr) \(command())",
+            timeout: 15
+        )
+    }
+
+    private func authedResult(_ account: String, command: () -> String) async throws -> ShellCommandResult {
+        let tokenExpr = "$(gh auth token -u \(shellQuote(account)) -h github.com)"
+        return try await ShellCommand.runWithResult(
             "GH_TOKEN=\(tokenExpr) \(command())",
             timeout: 15
         )

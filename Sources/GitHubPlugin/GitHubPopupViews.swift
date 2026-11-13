@@ -14,6 +14,9 @@ struct GitHubPopupContent: View {
     let sectionOrder: [PopupSection]
     let onOpenURL: (String) -> Void
     let onRefresh: () -> Void
+    let onMoveSection: (PopupSection, Int) -> Void
+
+    @State private var hoveredSection: PopupSection?
 
     private var reviewPRs: [GitHubPullRequest] {
         snapshots.flatMap(\.reviewPRs).sorted { $0.updatedAt > $1.updatedAt }
@@ -55,6 +58,10 @@ struct GitHubPopupContent: View {
                     }
                 }
 
+                if showNotifications && snapshots.contains(where: \.notificationsUnsupported) {
+                    hintRow("Notifications need the `notifications` scope — run `gh auth refresh -s notifications`")
+                }
+
                 if snapshots.isEmpty || (visibleSections.isEmpty && failedAccounts.isEmpty) {
                     PopupEmptyState(icon: "checkmark.circle", message: fetching ? "Loading…" : "All caught up")
                 } else {
@@ -62,7 +69,11 @@ struct GitHubPopupContent: View {
                         VStack(spacing: 0) {
                             ForEach(Array(visibleSections.enumerated()), id: \.element) { index, section in
                                 if index > 0 { PopupDivider() }
-                                sectionContent(section)
+                                sectionContent(
+                                    section,
+                                    canMoveUp: index > 0,
+                                    canMoveDown: index < visibleSections.count - 1
+                                )
                             }
                         }
                     }
@@ -75,20 +86,23 @@ struct GitHubPopupContent: View {
     }
 
     @ViewBuilder
-    private func sectionContent(_ section: PopupSection) -> some View {
+    private func sectionContent(_ section: PopupSection, canMoveUp: Bool, canMoveDown: Bool) -> some View {
         switch section {
         case .review:
-            sectionHeader("Review Requested", count: reviewPRs.count, color: Theme.yellow)
+            sectionHeader("Review Requested", count: reviewPRs.count, color: Theme.yellow,
+                          section: section, canMoveUp: canMoveUp, canMoveDown: canMoveDown)
             ForEach(reviewPRs, id: \.key) { pr in
                 PRRowView(pr: pr, role: .reviewRequested, showAccount: multiAccount, onOpen: onOpenURL)
             }
         case .mine:
-            sectionHeader("My Pull Requests", count: myPRs.count, color: Theme.accentBlue)
+            sectionHeader("My Pull Requests", count: myPRs.count, color: Theme.accentBlue,
+                          section: section, canMoveUp: canMoveUp, canMoveDown: canMoveDown)
             ForEach(myPRs, id: \.key) { pr in
                 PRRowView(pr: pr, role: .authored, showAccount: multiAccount, onOpen: onOpenURL)
             }
         case .notifications:
-            sectionHeader("Notifications", count: notifications.count, color: Theme.secondary)
+            sectionHeader("Notifications", count: notifications.count, color: Theme.secondary,
+                          section: section, canMoveUp: canMoveUp, canMoveDown: canMoveDown)
             ForEach(notifications.prefix(20), id: \.key) { notification in
                 NotificationRowView(notification: notification, showAccount: multiAccount, onOpen: onOpenURL)
             }
@@ -129,20 +143,51 @@ struct GitHubPopupContent: View {
         .padding(.bottom, 8)
     }
 
-    private func sectionHeader(_ title: String, count: Int, color: Color) -> some View {
-        HStack {
+    private func sectionHeader(
+        _ title: String, count: Int, color: Color,
+        section: PopupSection, canMoveUp: Bool, canMoveDown: Bool
+    ) -> some View {
+        HStack(spacing: 4) {
             PopupSectionHeader(title)
             Spacer()
+
+            HStack(spacing: 2) {
+                moveButton("chevron.up", section: section, direction: -1, enabled: canMoveUp)
+                moveButton("chevron.down", section: section, direction: 1, enabled: canMoveDown)
+            }
+            .opacity(hoveredSection == section ? 1 : 0)
+
             Text("\(count)")
                 .font(.system(size: 10, weight: .semibold, design: .rounded))
                 .foregroundStyle(color)
                 .padding(.horizontal, 7)
                 .padding(.vertical, 1)
                 .background(Capsule().fill(color.opacity(0.22)))
-                .padding(.trailing, 14)
-                .padding(.top, 12)
-                .padding(.bottom, 4)
         }
+        .padding(.trailing, 14)
+        .padding(.top, 12)
+        .padding(.bottom, 4)
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            hoveredSection = hovering ? section : nil
+        }
+    }
+
+    private func moveButton(
+        _ symbol: String, section: PopupSection, direction: Int, enabled: Bool
+    ) -> some View {
+        Button {
+            onMoveSection(section, direction)
+        } label: {
+            Image(systemName: symbol)
+                .font(.system(size: 8, weight: .bold))
+                .foregroundStyle(.secondary)
+                .frame(width: 14, height: 12)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
+        .opacity(enabled ? 1 : 0.25)
     }
 
     private func errorRow(_ message: String) -> some View {
@@ -163,7 +208,10 @@ struct GitHubPopupContent: View {
         Text(text)
             .font(.system(size: 11))
             .foregroundStyle(.secondary)
+            .multilineTextAlignment(.leading)
+            .padding(.horizontal, 14)
             .padding(.bottom, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

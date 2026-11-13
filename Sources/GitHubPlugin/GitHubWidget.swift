@@ -246,7 +246,34 @@ public final class GitHubWidget: StatusBarWidget {
             onOpenURL: { url in
                 Task { _ = try? await ShellCommand.run("open", arguments: [url]) }
             },
-            onRefresh: { [weak self] in self?.refresh() }
+            onRefresh: { [weak self] in self?.refresh() },
+            onMoveSection: { [weak self] section, direction in
+                self?.moveSection(section, direction)
+            }
         )
+    }
+
+    /// Swap a section with its adjacent *visible* neighbor, leaving hidden
+    /// sections in place, then persist via the sectionOrder setting.
+    private func moveSection(_ section: PopupSection, _ direction: Int) {
+        let full = settings.orderedSections
+        let visible = Set(full.filter { s in
+            switch s {
+            case .review: snapshots.contains { !$0.reviewPRs.isEmpty }
+            case .mine: snapshots.contains { !$0.myPRs.isEmpty }
+            case .notifications: settings.showNotifications && snapshots.contains { !$0.notifications.isEmpty }
+            }
+        })
+        var visOrder = full.filter { visible.contains($0) }
+        guard let idx = visOrder.firstIndex(of: section),
+              visOrder.indices.contains(idx + direction) else { return }
+        visOrder.swapAt(idx, idx + direction)
+        var iter = visOrder.makeIterator()
+        settings.sectionOrder = full
+            .map { visible.contains($0) ? iter.next()! : $0 }
+            .map(\.rawValue)
+            .joined(separator: ",")
+        popupPanel?.updateContent(makePopupContent())
+        popupPanel?.resizeToFitContent()
     }
 }

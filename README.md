@@ -16,6 +16,7 @@ GitHub pull requests and notifications in your [StatusBar](https://github.com/hy
 
 - macOS 26+
 - [GitHub CLI](https://cli.github.com/) (`gh`) signed in — `gh auth login`
+- For the Notifications section: `gh auth refresh -s notifications` (per account)
 - StatusBar 0.20.0+ / StatusBarKit 1.10.1+
 
 ## Data Sources

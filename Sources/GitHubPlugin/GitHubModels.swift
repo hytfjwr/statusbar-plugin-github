@@ -62,6 +62,8 @@ struct AccountSnapshot: Sendable, Equatable {
     var myPRs: [GitHubPullRequest] = []
     var reviewPRs: [GitHubPullRequest] = []
     var notifications: [GitHubNotification] = []
+    /// The account's token lacks the `notifications` scope (/notifications 404).
+    var notificationsUnsupported = false
     /// Non-nil when every request for this account failed.
     var error: String?
 }
