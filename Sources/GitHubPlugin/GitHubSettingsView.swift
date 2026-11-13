@@ -4,6 +4,7 @@ import SwiftUI
 struct GitHubSettingsView: View {
     @State private var accounts: String
     @State private var refreshInterval: Double
+    @State private var prRefreshInterval: Double
     @State private var showNotifications: Bool
     @State private var showBarCounts: Bool
     @State private var toastOnReviewRequest: Bool
@@ -14,6 +15,7 @@ struct GitHubSettingsView: View {
         let s = GitHubSettings.shared
         _accounts = State(initialValue: s.accounts)
         _refreshInterval = State(initialValue: s.refreshInterval)
+        _prRefreshInterval = State(initialValue: s.prRefreshInterval)
         _showNotifications = State(initialValue: s.showNotifications)
         _showBarCounts = State(initialValue: s.showBarCounts)
         _toastOnReviewRequest = State(initialValue: s.toastOnReviewRequest)
@@ -59,6 +61,26 @@ struct GitHubSettingsView: View {
                 .onChange(of: refreshInterval) { _, newValue in
                     GitHubSettings.shared.refreshInterval = newValue
                 }
+
+                Text("PR Fetch Interval")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 6)
+
+                Picker("PR Fetch Interval", selection: $prRefreshInterval) {
+                    Text("1m").tag(60.0)
+                    Text("2m").tag(120.0)
+                    Text("5m").tag(300.0)
+                    Text("10m").tag(600.0)
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: prRefreshInterval) { _, newValue in
+                    GitHubSettings.shared.prRefreshInterval = newValue
+                }
+
+                Text("Notifications poll cheaply via ETag (unchanged polls don't count against rate limits). PRs refetch slower or when a review-relevant notification arrives.")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.tertiary)
             }
 
             Divider()

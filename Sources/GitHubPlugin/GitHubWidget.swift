@@ -1,6 +1,9 @@
 import Combine
+import OSLog
 import StatusBarKit
 import SwiftUI
+
+private let logger = Logger(subsystem: "com.statusbar.github", category: "GitHubWidget")
 
 @MainActor
 @Observable
@@ -22,6 +25,15 @@ public final class GitHubWidget: StatusBarWidget {
     private var loadError: String?
     private var fetching = false
     private var lastUpdated: Date?
+    private var lastPRFetch: Date = .distantPast
+    private var lastNotifPoll: Date = .distantPast
+    /// ETag per account for conditional /notifications polls (304s are free).
+    private var etagByAccount: [String: String] = [:]
+
+    /// Notification reasons that should trigger an immediate PR refetch.
+    private static let prRelevantReasons: Set<String> = [
+        "review_requested", "assign", "approval_requested",
+    ]
 
     // Toast dedup state. Seeded silently on the first successful fetch so
     // pre-existing review requests don't toast at startup.
@@ -106,7 +118,7 @@ public final class GitHubWidget: StatusBarWidget {
         let interval = max(settings.refreshInterval, 15)
         timer = Timer.publish(every: interval, on: .main, in: .common)
             .autoconnect()
-            .sink { [weak self] _ in self?.refresh() }
+            .sink { [weak self] _ in self?.tick() }
     }
 
     private func observeSettings() {
@@ -118,6 +130,7 @@ public final class GitHubWidget: StatusBarWidget {
             _ = settings.toastOnReviewRequest
             _ = settings.toastOnReviewDecision
             _ = settings.sectionOrder
+            _ = settings.prRefreshInterval
         } onChange: { [weak self] in
             Task { @MainActor in
                 guard let self else { return }
@@ -135,6 +148,8 @@ public final class GitHubWidget: StatusBarWidget {
             defer {
                 fetching = false
                 lastUpdated = Date()
+                lastPRFetch = Date()
+                lastNotifPoll = Date()
                 if popupPanel?.isVisible == true {
                     popupPanel?.updateContent(makePopupContent())
                     popupPanel?.resizeToFitContent()
@@ -171,6 +186,84 @@ public final class GitHubWidget: StatusBarWidget {
                 loadError = error.localizedDescription
             }
         }
+    }
+
+    /// Timer tick: cheap conditional notification polls plus a slower PR fetch.
+    /// Review-relevant notification diffs trigger an immediate PR refetch.
+    private func tick() {
+        guard !fetching else { return }
+        guard !snapshots.isEmpty else {
+            refresh()
+            return
+        }
+        fetching = true
+        Task { @MainActor in
+            defer {
+                fetching = false
+                lastUpdated = Date()
+                if popupPanel?.isVisible == true {
+                    popupPanel?.updateContent(makePopupContent())
+                    popupPanel?.resizeToFitContent()
+                }
+            }
+
+            let now = Date()
+            var needPR = now.timeIntervalSince(lastPRFetch) >= max(settings.prRefreshInterval, 60)
+
+            // Notifications: X-Poll-Interval is 60s; ETag makes unchanged polls free.
+            if settings.showNotifications, now.timeIntervalSince(lastNotifPoll) >= 60 {
+                lastNotifPoll = now
+                await pollNotifications(&needPR)
+            }
+
+            if needPR {
+                lastPRFetch = now
+                await fetchPullRequests()
+            }
+        }
+    }
+
+    private func pollNotifications(_ needPR: inout Bool) async {
+        for i in snapshots.indices {
+            let login = snapshots[i].login
+            do {
+                switch try await service.pollNotifications(account: login, etag: etagByAccount[login]) {
+                case .unchanged:
+                    break
+                case let .changed(notifications, etag):
+                    etagByAccount[login] = etag
+                    let prevKeys = Set(snapshots[i].notifications.map(\.key))
+                    if notifications.contains(where: {
+                        !prevKeys.contains($0.key) && Self.prRelevantReasons.contains($0.reason)
+                    }) {
+                        needPR = true
+                    }
+                    snapshots[i].notifications = notifications
+                    snapshots[i].notificationsUnsupported = false
+                }
+            } catch GitHubServiceError.notificationsUnsupported {
+                snapshots[i].notificationsUnsupported = true
+            } catch {
+                logger.debug("pollNotifications(\(login)) failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    /// Refetch PR data per account, preserving notifications and scope flags.
+    private func fetchPullRequests() async {
+        for i in snapshots.indices {
+            let login = snapshots[i].login
+            do {
+                let prs = try await service.fetchPullRequests(account: login)
+                snapshots[i].myPRs = prs.my
+                snapshots[i].reviewPRs = prs.review
+                snapshots[i].error = nil
+            } catch {
+                logger.debug("fetchPullRequests(\(login)) failed: \(error.localizedDescription)")
+                snapshots[i].error = error.localizedDescription
+            }
+        }
+        processToasts(snapshots)
     }
 
     // MARK: - Toasts

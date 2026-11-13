@@ -18,6 +18,12 @@ final class GitHubSettings: WidgetConfigProvider {
         didSet { if !suppressWrite { WidgetConfigRegistry.shared.notifySettingsChanged() } }
     }
 
+    /// Pull-request (GraphQL) fetch cadence in seconds — the slow tier.
+    /// Notifications poll every max(refreshInterval, 60)s via ETag conditionals.
+    var prRefreshInterval: Double {
+        didSet { if !suppressWrite { WidgetConfigRegistry.shared.notifySettingsChanged() } }
+    }
+
     var showNotifications: Bool {
         didSet { if !suppressWrite { WidgetConfigRegistry.shared.notifySettingsChanged() } }
     }
@@ -43,6 +49,7 @@ final class GitHubSettings: WidgetConfigProvider {
         let cfg = WidgetConfigRegistry.shared.values(for: configID)
         accounts = cfg?["accounts"]?.stringValue ?? ""
         refreshInterval = cfg?["refreshInterval"]?.doubleValue ?? 60
+        prRefreshInterval = cfg?["prRefreshInterval"]?.doubleValue ?? 120
         showNotifications = cfg?["showNotifications"]?.boolValue ?? true
         showBarCounts = cfg?["showBarCounts"]?.boolValue ?? true
         toastOnReviewRequest = cfg?["toastOnReviewRequest"]?.boolValue ?? true
@@ -55,6 +62,7 @@ final class GitHubSettings: WidgetConfigProvider {
         [
             "accounts": .string(accounts),
             "refreshInterval": .double(refreshInterval),
+            "prRefreshInterval": .double(prRefreshInterval),
             "showNotifications": .bool(showNotifications),
             "showBarCounts": .bool(showBarCounts),
             "toastOnReviewRequest": .bool(toastOnReviewRequest),
@@ -68,6 +76,7 @@ final class GitHubSettings: WidgetConfigProvider {
         defer { suppressWrite = false }
         if let v = values["accounts"]?.stringValue { accounts = v }
         if let v = values["refreshInterval"]?.doubleValue { refreshInterval = v }
+        if let v = values["prRefreshInterval"]?.doubleValue { prRefreshInterval = v }
         if let v = values["showNotifications"]?.boolValue { showNotifications = v }
         if let v = values["showBarCounts"]?.boolValue { showBarCounts = v }
         if let v = values["toastOnReviewRequest"]?.boolValue { toastOnReviewRequest = v }

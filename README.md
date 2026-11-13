@@ -34,7 +34,8 @@ Each account is queried with its own token (`gh auth token -u <login>`), so non-
 | Key | Default | Description |
 |-----|---------|-------------|
 | `accounts` | *(auto)* | Comma-separated gh logins; empty = all authenticated accounts |
-| `refreshInterval` | `60` | Poll interval in seconds (min 15) |
+| `refreshInterval` | `60` | Notification poll interval in seconds (min 15; GitHub caps freshness at ~60s) |
+| `prRefreshInterval` | `120` | PR (GraphQL) fetch interval in seconds (min 60); also refetches on review-relevant notifications |
 | `showNotifications` | `true` | Show the notifications section |
 | `showBarCounts` | `true` | Show PR counts next to the bar icon |
 | `toastOnReviewRequest` | `true` | Toast when a new review request arrives |

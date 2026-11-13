@@ -72,7 +72,7 @@ final class GitHubService: @unchecked Sendable {
 
     func fetchNotifications(account: String) async throws -> [GitHubNotification] {
         let result = try await authedResult(account) {
-            "gh api notifications -f per_page=50"
+            "gh api 'notifications?per_page=50'"
         }
         guard result.exitCode == 0 else {
             if result.stderr.contains("404") || result.stdout.contains("HTTP 404") {
@@ -86,6 +86,51 @@ final class GitHubService: @unchecked Sendable {
         return try JSONDecoder().decode([NotificationDTO].self, from: data)
             .filter(\.unread)
             .map { GitHubMapping.notification($0, account: account) }
+    }
+
+    enum NotificationPoll {
+        /// 304 — feed unchanged since the stored ETag (doesn't count against rate limit).
+        case unchanged
+        /// 200 — new payload plus the ETag to store for the next conditional poll.
+        case changed(notifications: [GitHubNotification], etag: String?)
+    }
+
+    /// Conditional poll: sends If-None-Match with the stored ETag.
+    /// `gh api -i` prints headers + body on stdout for any status, so we parse
+    /// the status line rather than relying on the exit code.
+    func pollNotifications(account: String, etag: String?) async throws -> NotificationPoll {
+        var header = ""
+        if let etag {
+            header = " -H \(shellQuote("If-None-Match: \(etag)"))"
+        }
+        let result = try await authedResult(account) {
+            "gh api 'notifications?per_page=50' -i\(header)"
+        }
+        let output = result.stdout
+        if result.stderr.contains("404") || output.hasPrefix("HTTP/2.0 404") || output.hasPrefix("HTTP/1.1 404") {
+            throw GitHubServiceError.notificationsUnsupported
+        }
+        if output.contains("HTTP/2.0 304") || output.contains("HTTP/1.1 304") {
+            return .unchanged
+        }
+        guard output.contains("HTTP/2.0 200") || output.contains("HTTP/1.1 200") else {
+            throw GitHubServiceError.fetchFailed(result.stderr.components(separatedBy: "\n").first ?? "request failed")
+        }
+        let headerEnd = output.range(of: "\n\n") ?? output.range(of: "\r\n\r\n")
+        let (headers, body) = headerEnd.map {
+            (String(output[..<$0.lowerBound]), String(output[$0.upperBound...]))
+        } ?? ("", output)
+        let newETag = headers
+            .components(separatedBy: "\n")
+            .first { $0.lowercased().hasPrefix("etag:") }
+            .map { $0.dropFirst(5).trimmingCharacters(in: .whitespacesAndNewlines) }
+        guard let data = body.data(using: .utf8) else {
+            throw GitHubServiceError.fetchFailed("empty response")
+        }
+        let notifications = try JSONDecoder().decode([NotificationDTO].self, from: data)
+            .filter(\.unread)
+            .map { GitHubMapping.notification($0, account: account) }
+        return .changed(notifications: notifications, etag: newETag)
     }
 
     /// Fetch a full snapshot for one account. Section-level failures degrade to
