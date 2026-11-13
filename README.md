@@ -2,6 +2,10 @@
 
 GitHub pull requests and notifications in your [StatusBar](https://github.com/hytfjwr/StatusBar), powered by the `gh` CLI.
 
+<p align="center">
+  <img src="docs/popup-preview.png" alt="GitHub plugin popup preview" width="340">
+</p>
+
 ## Features
 
 - **Bar indicator** — shows pending review count and your open PR count at a glance
