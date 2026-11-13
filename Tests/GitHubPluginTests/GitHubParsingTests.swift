@@ -215,6 +215,26 @@ struct ChangeDetectionTests {
     }
 }
 
+struct SectionOrderTests {
+    @Test
+    func `default order is review then mine then notifications`() {
+        #expect(PopupSection.parseOrder("review,mine,notifications") == [.review, .mine, .notifications])
+        #expect(PopupSection.parseOrder("") == [.review, .mine, .notifications])
+    }
+
+    @Test
+    func `reorders and keeps omitted sections last`() {
+        #expect(PopupSection.parseOrder("notifications,mine") == [.notifications, .mine, .review])
+        #expect(PopupSection.parseOrder("mine") == [.mine, .review, .notifications])
+    }
+
+    @Test
+    func `drops unknown tokens, duplicates, and whitespace`() {
+        #expect(PopupSection.parseOrder(" mine ,bogus,mine, review") == [.mine, .review, .notifications])
+        #expect(PopupSection.parseOrder("Mine,NOTIFICATIONS") == [.mine, .notifications, .review])
+    }
+}
+
 struct RelativeTimeTests {
     @Test
     func `formats compact relative times`() {

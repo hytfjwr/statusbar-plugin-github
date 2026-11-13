@@ -66,6 +66,25 @@ struct AccountSnapshot: Sendable, Equatable {
     var error: String?
 }
 
+/// Popup sections, orderable via the `sectionOrder` setting.
+enum PopupSection: String, Sendable, CaseIterable {
+    case review
+    case mine
+    case notifications
+
+    /// Parse a comma-separated order string. Unknown tokens are dropped,
+    /// duplicates collapse, and omitted sections append in default order.
+    static func parseOrder(_ string: String) -> [PopupSection] {
+        var seen = Set<PopupSection>()
+        var ordered = string
+            .split(separator: ",")
+            .compactMap { PopupSection(rawValue: $0.trimmingCharacters(in: .whitespaces).lowercased()) }
+            .filter { seen.insert($0).inserted }
+        ordered += PopupSection.allCases.filter { !seen.contains($0) }
+        return ordered
+    }
+}
+
 // MARK: - GraphQL Wire Types
 
 struct SearchResponseDTO: Decodable {

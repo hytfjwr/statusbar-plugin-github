@@ -38,6 +38,7 @@ Each account is queried with its own token (`gh auth token -u <login>`), so non-
 | `showBarCounts` | `true` | Show PR counts next to the bar icon |
 | `toastOnReviewRequest` | `true` | Toast when a new review request arrives |
 | `toastOnReviewDecision` | `true` | Toast when your PR is approved / gets changes requested |
+| `sectionOrder` | `review,mine,notifications` | Popup section order — comma-separated subset/reordering of `review`, `mine`, `notifications` |
 
 ## Development
 

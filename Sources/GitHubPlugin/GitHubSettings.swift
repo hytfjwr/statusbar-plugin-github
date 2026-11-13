@@ -34,6 +34,11 @@ final class GitHubSettings: WidgetConfigProvider {
         didSet { if !suppressWrite { WidgetConfigRegistry.shared.notifySettingsChanged() } }
     }
 
+    /// Comma-separated popup section order (review,mine,notifications).
+    var sectionOrder: String {
+        didSet { if !suppressWrite { WidgetConfigRegistry.shared.notifySettingsChanged() } }
+    }
+
     private init() {
         let cfg = WidgetConfigRegistry.shared.values(for: configID)
         accounts = cfg?["accounts"]?.stringValue ?? ""
@@ -42,6 +47,7 @@ final class GitHubSettings: WidgetConfigProvider {
         showBarCounts = cfg?["showBarCounts"]?.boolValue ?? true
         toastOnReviewRequest = cfg?["toastOnReviewRequest"]?.boolValue ?? true
         toastOnReviewDecision = cfg?["toastOnReviewDecision"]?.boolValue ?? true
+        sectionOrder = cfg?["sectionOrder"]?.stringValue ?? PopupSection.allCases.map(\.rawValue).joined(separator: ",")
         WidgetConfigRegistry.shared.register(self)
     }
 
@@ -53,6 +59,7 @@ final class GitHubSettings: WidgetConfigProvider {
             "showBarCounts": .bool(showBarCounts),
             "toastOnReviewRequest": .bool(toastOnReviewRequest),
             "toastOnReviewDecision": .bool(toastOnReviewDecision),
+            "sectionOrder": .string(sectionOrder),
         ]
     }
 
@@ -65,6 +72,12 @@ final class GitHubSettings: WidgetConfigProvider {
         if let v = values["showBarCounts"]?.boolValue { showBarCounts = v }
         if let v = values["toastOnReviewRequest"]?.boolValue { toastOnReviewRequest = v }
         if let v = values["toastOnReviewDecision"]?.boolValue { toastOnReviewDecision = v }
+        if let v = values["sectionOrder"]?.stringValue { sectionOrder = v }
+    }
+
+    /// Popup sections in display order.
+    var orderedSections: [PopupSection] {
+        PopupSection.parseOrder(sectionOrder)
     }
 
     /// Explicitly configured logins, or nil meaning "all gh accounts".

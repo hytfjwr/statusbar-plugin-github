@@ -1,9 +1,18 @@
 import SwiftUI
 
-/// The GitHub mark (Octocat silhouette in a circle), drawn as a vector shape so
-/// it tints via `foregroundStyle` like an SF Symbol. Path data adapted from the
-/// octicons `mark-github-16` glyph (MIT).
+/// GitHub brand marks drawn as vector shapes so they tint via `foregroundStyle`
+/// like SF Symbols — no bundled image resources needed in the dylib.
+enum GitHubMarkStyle {
+    /// Official mark: Octocat silhouette knocked out of a solid circle.
+    case badge
+    /// Invertocat: just the cat silhouette — lighter visual weight at bar size.
+    case cat
+}
+
+/// Path data adapted from the octicons `mark-github-16` glyph (MIT).
 struct GitHubMarkShape: Shape {
+    var style: GitHubMarkStyle = .badge
+
     func path(in rect: CGRect) -> Path {
         let scale = min(rect.width, rect.height) / 16
         var path = Path()
@@ -36,6 +45,13 @@ struct GitHubMarkShape: Shape {
         path.addCurve(to: CGPoint(x: 5.109, y: 12.48), control1: CGPoint(x: 4.391, y: 12.28), control2: CGPoint(x: 4.718, y: 12.48))
         path.addCurve(to: CGPoint(x: 6.109, y: 11.98), control1: CGPoint(x: 5.5, y: 12.48), control2: CGPoint(x: 5.75, y: 12.34))
         path.addCurve(to: CGPoint(x: 6.766, y: 11.33), control1: CGPoint(x: 6.375, y: 11.72), control2: CGPoint(x: 6.579, y: 11.48))
+        if style == .cat {
+            // Filling even-odd with an extra copy of the outer circle leaves
+            // only the knocked-out silhouette: just the cat.
+            path.addEllipse(in: CGRect(x: 0, y: 0.03, width: 16, height: 16))
+        }
         return path.applying(CGAffineTransform(scaleX: scale, y: scale))
     }
+
+    var fillStyle: FillStyle { FillStyle(eoFill: style == .cat) }
 }

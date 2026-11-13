@@ -8,6 +8,7 @@ struct GitHubSettingsView: View {
     @State private var showBarCounts: Bool
     @State private var toastOnReviewRequest: Bool
     @State private var toastOnReviewDecision: Bool
+    @State private var sectionOrder: String
 
     init() {
         let s = GitHubSettings.shared
@@ -17,6 +18,7 @@ struct GitHubSettingsView: View {
         _showBarCounts = State(initialValue: s.showBarCounts)
         _toastOnReviewRequest = State(initialValue: s.toastOnReviewRequest)
         _toastOnReviewDecision = State(initialValue: s.toastOnReviewDecision)
+        _sectionOrder = State(initialValue: s.sectionOrder)
     }
 
     var body: some View {
@@ -76,6 +78,17 @@ struct GitHubSettingsView: View {
                     .onChange(of: showNotifications) { _, newValue in
                         GitHubSettings.shared.showNotifications = newValue
                     }
+
+                TextField("review,mine,notifications", text: $sectionOrder)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 12, design: .monospaced))
+                    .onChange(of: sectionOrder) { _, newValue in
+                        GitHubSettings.shared.sectionOrder = newValue
+                    }
+
+                Text("Popup section order — comma-separated: review, mine, notifications.")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.tertiary)
             }
             .toggleStyle(.switch)
             .font(.system(size: 12))

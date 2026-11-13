@@ -76,9 +76,9 @@ public final class GitHubWidget: StatusBarWidget {
                     .foregroundStyle(Theme.yellow)
             }
 
-            GitHubMarkShape()
-                .fill(iconColor)
-                .frame(width: 14, height: 14)
+            GitHubMarkShape(style: .cat)
+                .fill(iconColor, style: FillStyle(eoFill: true))
+                .frame(width: 15, height: 15)
 
             if settings.showBarCounts && myPRCount > 0 {
                 Text("\(myPRCount)")
@@ -117,6 +117,7 @@ public final class GitHubWidget: StatusBarWidget {
             _ = settings.showBarCounts
             _ = settings.toastOnReviewRequest
             _ = settings.toastOnReviewDecision
+            _ = settings.sectionOrder
         } onChange: { [weak self] in
             Task { @MainActor in
                 guard let self else { return }
@@ -241,6 +242,7 @@ public final class GitHubWidget: StatusBarWidget {
             lastUpdated: lastUpdated,
             showNotifications: settings.showNotifications,
             multiAccount: snapshots.count > 1,
+            sectionOrder: settings.orderedSections,
             onOpenURL: { url in
                 Task { _ = try? await ShellCommand.run("open", arguments: [url]) }
             },

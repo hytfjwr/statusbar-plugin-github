@@ -11,6 +11,7 @@ struct GitHubPopupContent: View {
     let lastUpdated: Date?
     let showNotifications: Bool
     let multiAccount: Bool
+    let sectionOrder: [PopupSection]
     let onOpenURL: (String) -> Void
     let onRefresh: () -> Void
 
@@ -24,6 +25,16 @@ struct GitHubPopupContent: View {
 
     private var notifications: [GitHubNotification] {
         snapshots.flatMap(\.notifications).sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    private var visibleSections: [PopupSection] {
+        sectionOrder.filter { section in
+            switch section {
+            case .review: !reviewPRs.isEmpty
+            case .mine: !myPRs.isEmpty
+            case .notifications: showNotifications && !notifications.isEmpty
+            }
+        }
     }
 
     var body: some View {
@@ -44,32 +55,14 @@ struct GitHubPopupContent: View {
                     }
                 }
 
-                if snapshots.isEmpty || (reviewPRs.isEmpty && myPRs.isEmpty && notifications.isEmpty && failedAccounts.isEmpty) {
+                if snapshots.isEmpty || (visibleSections.isEmpty && failedAccounts.isEmpty) {
                     PopupEmptyState(icon: "checkmark.circle", message: fetching ? "Loading…" : "All caught up")
                 } else {
                     ScrollView {
                         VStack(spacing: 0) {
-                            if !reviewPRs.isEmpty {
-                                sectionHeader("Review Requested", count: reviewPRs.count, color: Theme.yellow)
-                                ForEach(reviewPRs, id: \.key) { pr in
-                                    PRRowView(pr: pr, role: .reviewRequested, showAccount: multiAccount, onOpen: onOpenURL)
-                                }
-                            }
-
-                            if !myPRs.isEmpty {
-                                if !reviewPRs.isEmpty { PopupDivider() }
-                                sectionHeader("My Pull Requests", count: myPRs.count, color: Theme.accentBlue)
-                                ForEach(myPRs, id: \.key) { pr in
-                                    PRRowView(pr: pr, role: .authored, showAccount: multiAccount, onOpen: onOpenURL)
-                                }
-                            }
-
-                            if showNotifications && !notifications.isEmpty {
-                                if !reviewPRs.isEmpty || !myPRs.isEmpty { PopupDivider() }
-                                sectionHeader("Notifications", count: notifications.count, color: Theme.secondary)
-                                ForEach(notifications.prefix(20), id: \.key) { notification in
-                                    NotificationRowView(notification: notification, showAccount: multiAccount, onOpen: onOpenURL)
-                                }
+                            ForEach(Array(visibleSections.enumerated()), id: \.element) { index, section in
+                                if index > 0 { PopupDivider() }
+                                sectionContent(section)
                             }
                         }
                     }
@@ -81,11 +74,32 @@ struct GitHubPopupContent: View {
         .frame(width: 340)
     }
 
+    @ViewBuilder
+    private func sectionContent(_ section: PopupSection) -> some View {
+        switch section {
+        case .review:
+            sectionHeader("Review Requested", count: reviewPRs.count, color: Theme.yellow)
+            ForEach(reviewPRs, id: \.key) { pr in
+                PRRowView(pr: pr, role: .reviewRequested, showAccount: multiAccount, onOpen: onOpenURL)
+            }
+        case .mine:
+            sectionHeader("My Pull Requests", count: myPRs.count, color: Theme.accentBlue)
+            ForEach(myPRs, id: \.key) { pr in
+                PRRowView(pr: pr, role: .authored, showAccount: multiAccount, onOpen: onOpenURL)
+            }
+        case .notifications:
+            sectionHeader("Notifications", count: notifications.count, color: Theme.secondary)
+            ForEach(notifications.prefix(20), id: \.key) { notification in
+                NotificationRowView(notification: notification, showAccount: multiAccount, onOpen: onOpenURL)
+            }
+        }
+    }
+
     private var header: some View {
         HStack(spacing: 8) {
-            GitHubMarkShape()
-                .fill(Theme.accentBlue)
-                .frame(width: 12, height: 12)
+            GitHubMarkShape(style: .cat)
+                .fill(Theme.accentBlue, style: FillStyle(eoFill: true))
+                .frame(width: 13, height: 13)
             Text("GITHUB")
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(Theme.secondary)
