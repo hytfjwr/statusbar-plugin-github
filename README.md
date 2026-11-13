@@ -16,6 +16,14 @@ GitHub pull requests and notifications in your [StatusBar](https://github.com/hy
 - **Toast alerts** — new review requests, PR approvals, and change requests notify via StatusBar toasts (with an "Open" action)
 - **Click any row** to open it in the browser
 
+## Install
+
+In StatusBar preferences → Plugins → Add Plugin:
+
+```
+hytfjwr/statusbar-plugin-github
+```
+
 ## Requirements
 
 - macOS 26+
